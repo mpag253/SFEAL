@@ -1,9 +1,10 @@
 import os
 import numpy as np
+import pandas as pd
 
 from src.sfeal import core as sf
 
-from subjects import subjects as list_of_subjects
+#from subjects import subjects as list_of_subjects
 
 # from mlr import EiMLR, EeMLR
 
@@ -15,20 +16,24 @@ sfmodel = sf.SSM()
 """ Some configurations. Modify as required. """
 config = dict()
 config["root dir"] = "/hpc/mpag253/Torso/surface_fitting"  # specify where the root directory for lung meshes are
-config["study"] = "Human_Aging"  # specify the study
-config["path"] = os.path.join(config["root dir"], config["study"])
-config["volume"] = "EIsupine"  # specify the imaged volume
-config["scale"] = True  # whether lung size is normalised
-config["fitted_mesh_dir"] = "Lung/SurfaceFEMesh"
-config["subjects"] = list_of_subjects  # subjects going into the PCA
-# config["subjects"] = os.listdir(config["path"])  # subjects going into the PCA
-config["lung"] = "LR"  # can be L or R (left or right lung only) or LR (both lungs)
+config["scale"] = False  # whether lung size is normalised
+config["fitted_lung_dir"] = "Lung/SurfaceFEMesh"
+config["fitted_torso_dir"] = "Torso"
+config["bodies"] = "LR"  # can be L or R (left or right lung only) or LR (both lungs) or LRT (both lungs + torso)
 config["morphic original mesh path"] = "morphic_original"
 config["morphic aligned mesh path"] = "morphic_aligned"
 config["morphic mesh name"] = "Lung_fitted.mesh"
-config["reference lung"] = "AGING025"
+config["reference lung dir"] = os.path.join("Human_Aging","AGING025","EIsupine")
 config["subjects for pca"] = []
 config["number of modes"] = 5
+#config["subjects"] = list_of_subjects  # subjects going into the PCA
+#config["volume"] = "EIsupine"  # specify the imaged volume
+#config["study"] = "Human_Aging"  # specify the study
+
+""" Read inputs from checklist """
+input_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
+input_list = input_list[input_list[:, 0] == 1]
+config["study"], config["subjects"], config["volume"] = input_list[:, 1:4].T
 
 
 def _get_mesh():
@@ -40,17 +45,21 @@ def _get_mesh():
     morphic reference_mesh used in _align() for Procrustes registration.
 
     """
-    path = config["path"]
-    volume = config["volume"]
-    fitted_mesh_dir = config["fitted_mesh_dir"]
+
+    fitted_lung_dir = config["fitted_lung_dir"]
     subjects = config["subjects"]
     meshes = []
     not_exist_meshes = []
 
-    for sub in subjects:
+    for i, sub in enumerate(subjects):
 
-        full_path = os.path.join(path, sub, volume, fitted_mesh_dir)
-        output_path = sfmesh.convert_cm_mesh(full_path, lung=config["lung"])
+        study = config["study"][i]
+        volume = config["volume"][i]
+        
+        full_path = os.path.join(config["root dir"], study, sub, volume, fitted_lung_dir)
+        #/hpc/mpag253/Torso/surface_fitting/output/AGING001/EISupine/Torso/
+        torso_path = os.path.join(config["torso dir"], 'output', sub, volume, 'Torso')
+        output_path = sfmesh.convert_cm_mesh(full_path, torso_path, config["bodies"])   ##########
 
         if output_path is None:
             not_exist_meshes.append(sub)
@@ -58,15 +67,14 @@ def _get_mesh():
 
         config["subjects for pca"].append(sub)
         if not os.path.exists(full_path + '/' + config["morphic original mesh path"] + '/' + config["morphic mesh name"]):
-            sfmesh.generate_mesh(output_path, lung=config["lung"], save=True)
+            sfmesh.generate_mesh(output_path, bodies=config["bodies"], save=True)
 
         for mesh_file in os.listdir(output_path):
             if mesh_file.endswith(config["morphic mesh name"]):
-                # if sub == config["reference lung"]:
-                #     reference_mesh = '/hpc/mosa004/SFEAL/data/HLA_HA/AGING025/Insp/original/cmiss/morphic_original/Lung_fitted.mesh'
                 meshes.append(os.path.join(output_path, mesh_file))
 
-    reference_mesh = '/hpc/mpag253/Torso/surface_fitting/Human_Aging/AGING025/EIsupine/Lung/SurfaceFEMesh/morphic_original/Lung_fitted.mesh' #######################################################
+    #reference_mesh = '/hpc/mpag253/Torso/surface_fitting/Human_Aging/AGING025/EIsupine/Lung/SurfaceFEMesh/morphic_original/Lung_fitted.mesh'
+    reference_mesh = os.path.join(config["root dir"], config["reference lung dir"], fitted_lung_dir, 'morphic_original/Lung_fitted.mesh')
 
     return meshes, reference_mesh
 
@@ -98,14 +106,19 @@ def _prepare_sfeal():
 
     :return: Prepared SFEAL model object.
     """
-    path = config["path"]
-    volume = config["volume"]
-    fitted_mesh_dir = config["fitted_mesh_dir"]
+    #path = config["path"]
+    #volume = config["volume"]
+    fitted_lung_dir = config["fitted_lung_dir"]
     subjects = config["subjects for pca"]
     aligned_meshes = []
 
-    for sub in subjects:
-        full_path = os.path.join(path, sub, volume, fitted_mesh_dir, config["morphic aligned mesh path"])
+    for i, sub in enumerate(subjects):
+    
+        study = config["study"][i]
+        volume = config["volume"][i]
+        
+        full_path = os.path.join(config["root dir"], study, sub, volume, fitted_lung_dir, config["morphic aligned mesh path"])
+        
         if not os.path.exists(full_path):
             print('morphic_aligned directory does not exist for subject {}. Skipping...'.format(sub))
             continue
@@ -211,6 +224,7 @@ def main():
     #         else:
     #             config["export_name"] = 'mode_{}_P25_no_scale'.format(m)
     #
+    #         # MP: note need to change from "lung="
     #         sf.export_to_cm(pmesh, weights, name=config["export_name"], lung='L', show_mesh=False)
     #         sf.export_to_cm(pmesh, weights, name=config["export_name"], lung='R', show_mesh=False)
     #
