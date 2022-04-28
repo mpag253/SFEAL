@@ -290,7 +290,7 @@ open IPNODE, ">$ofile" or die "\033[31mError: Can't open $ofile\033[0m ";
 
 print IPNODE " CMISS Version 1.21 ipnode File Version 2\n";
 print IPNODE " Heading: Torso_pca_reconstructed\n\n";
-printf IPNODE " The number of nodes is [  35]:   35 \n\n";
+printf IPNODE " The number of nodes is [ 112]:  112 \n\n";
 print IPNODE " Number of coordinates [ 3]:  3\n";
 print IPNODE " Do you want prompting for different versions of nj=1 [N]? Y\n";
 print IPNODE " Do you want prompting for different versions of nj=2 [N]? Y\n";
@@ -308,7 +308,7 @@ my (@versions,@Nodes,@base);
 
 @Nodes = (97..208);
 
-for my $i (){
+for my $i (97..208){
     $versions[$i] = 0;
 }
 
@@ -355,20 +355,20 @@ sub PrintModifiedNodes {
             $nv = 0;
             for my $j (1..3){
                 print IPNODE " The number of versions for nj=$j is [1]: 1\n";
-                print IPNODE " The Xj($j) coordinate is [ 0.00000E+00]:   $xyz[$i][$j]\n"; 
-                print IPNODE " The derivative wrt direction 1 is [ 0.00000E+00]: $deriv[$i][$nv][$j][0]\n";
-                print IPNODE " The derivative wrt direction 2 is [ 0.00000E+00]: $deriv[$i][$nv][$j][1]\n";
-                print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00]: 0.0\n";
+                print IPNODE " The Xj($j) coordinate is [ 0.00000E+00] CORRECT:   $xyz[$i][$j]\n"; 
+                print IPNODE " The derivative wrt direction 1 is [ 0.00000E+00] CORRECT: $deriv[$i][$nv][$j][0]\n";
+                print IPNODE " The derivative wrt direction 2 is [ 0.00000E+00] CORRECT: $deriv[$i][$nv][$j][1]\n";
+                print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00] CORRECT: $deriv[$i][$nv][$j][2]\n";
             } 
         }else{
             for my $j (1..3){
                 print IPNODE " The number of versions for nj=$j is [1]: $versions[$i]\n";
                 for my $nv (1..$versions[$i]) {
                     print IPNODE " For version number $nv: \n";
-                    print IPNODE " The Xj($j) coordinate is [ 0.00000E+00]:   $xyz[$i][$j]\n"; 
-                    print IPNODE " The derivative wrt direction 1 is [ 0.00000E+00]: $deriv[$i][$nv][$j][0]\n";
-                    print IPNODE " The derivative wrt direction 2 is [ 0.00000E+00]: $deriv[$i][$nv][$j][1]\n";
-                    print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00]: 0.0\n";
+                    print IPNODE " The Xj($j) coordinate is [ 0.00000E+00] WRONG:   $xyz[$i][$j]\n"; 
+                    print IPNODE " The derivative wrt direction 1 is [ 0.00000E+00] WRONG: $deriv[$i][$nv][$j][0]\n";
+                    print IPNODE " The derivative wrt direction 2 is [ 0.00000E+00] WRONG: $deriv[$i][$nv][$j][1]\n";
+                    print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00] WRONG: $deriv[$i][$nv][$j][2]\n";
                 } 
             } 
         }    

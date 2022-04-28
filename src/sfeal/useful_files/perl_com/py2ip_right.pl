@@ -284,10 +284,12 @@ while ($line) {
 
 close IPNODE;
 
+
 open IPNODE, ">$ofile" or die "\033[31mError: Can't open $ofile\033[0m ";
 
 print IPNODE " CMISS Version 1.21 ipnode File Version 2\n";
-print IPNODE " Heading: Right_pca_reconstructed\n\n";
+#print IPNODE " Heading: Right_pca_reconstructed\n\n";
+print IPNODE " Heading: fittedRight\n\n";
 printf IPNODE " The number of nodes is [  50]:   50 \n\n";
 print IPNODE " Number of coordinates [ 3]:  3\n";
 print IPNODE " Do you want prompting for different versions of nj=1 [N]? Y\n";

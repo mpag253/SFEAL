@@ -26,6 +26,8 @@ my $ofile = $ARGV[1];
 ### Process PCA-output mesh:
 #######
 
+# ****************** TORSO VERSION UNTESTED/INCOMPLETE *****************************************
+
 open IPNODE, "<$nfile" or die "\033[31mError: Can't open $nfile\033[0m ";
 my ($node, $i, @xyz, $nv, @deriv, $counter, @arr);
 
@@ -102,7 +104,7 @@ while ($line) {
             
         } else {
             
-            @arr = split(/\s+/, $line);
+            @arr = split(/ /, $line);
             $node = $arr[0];
             #~ print "$node \n";
             $nv = 0;
@@ -180,7 +182,7 @@ while ($line) {
             
         } else {
             
-            @arr = split(/\s+/, $line);
+            @arr = split(/ /, $line);
             $node = $arr[0];
             #~ print "$node \n";
             $nv = 0;
@@ -263,7 +265,7 @@ while ($line) {
             
         } else {
             
-            @arr = split(/\s+/, $line);
+            @arr = split(/ /, $line);
             $node = $arr[0];
             #~ print "$node \n";
             $nv = 0;
@@ -287,8 +289,8 @@ close IPNODE;
 open IPNODE, ">$ofile" or die "\033[31mError: Can't open $ofile\033[0m ";
 
 print IPNODE " CMISS Version 1.21 ipnode File Version 2\n";
-print IPNODE " Heading: Right_pca_reconstructed\n\n";
-printf IPNODE " The number of nodes is [  50]:   50 \n\n";
+print IPNODE " Heading: Torso_pca_reconstructed\n\n";
+printf IPNODE " The number of nodes is [ 112]:  112 \n\n";
 print IPNODE " Number of coordinates [ 3]:  3\n";
 print IPNODE " Do you want prompting for different versions of nj=1 [N]? Y\n";
 print IPNODE " Do you want prompting for different versions of nj=2 [N]? Y\n";
@@ -304,41 +306,41 @@ print IPNODE " The number of derivatives for coordinate 3 is [0]: 3 \n";
 
 my (@versions,@Nodes,@base);
 
-@Nodes = (1..50);
+@Nodes = (97..208);
 
-for my $i (19,21..22,25,27..28,41..43,45..47){
+for my $i (97..208){
     $versions[$i] = 0;
 }
 
-# Nodes with 1 version
-for my $i (1..18,20,23..24,26,29..40,44,48..50){
-    $versions[$i] = 1;
-}
-
-#Nodes with 2 versions
-for my $i (1..18,20,23..24,26,29..40,44,48..50){
-    $versions[$i] = 2;
-}
-
+## Nodes with 1 version
+#for my $i (97..208){
+#    $versions[$i] = 1;
+#}
+#
+##Nodes with 2 versions
+#for my $i (){
+#    $versions[$i] = 2;
+#}
+#
 # Nodes with 3 versions
-for my $i (1,3,7,9,14,20,26,29,31,33,35,38,48,50){
-	$versions[$i] = 3;
-}
-
-# Nodes with 4 versions
-for my $i (1,7,9,20,26,29,33,35,48,50){
-	$versions[$i] = 4 
-}
-
-# Nodes with 5 versions
-for my $i (1,7,20,26,29,31,33,38,48,50){
-	$versions[$i] = 5; 
-}
-
-# Nodes with 6 versions
-for my $i (31,38){
-	$versions[$i] = 6; 
-}
+#for my $i (){
+#	$versions[$i] = 3;
+#}
+#
+## Nodes with 4 versions
+#for my $i (){
+#	$versions[$i] = 4 
+#}
+#
+## Nodes with 5 versions
+#for my $i (){
+#	$versions[$i] = 5; 
+#}
+#
+## Nodes with 6 versions
+#for my $i (){
+#	$versions[$i] = 6; 
+#}
 
 &PrintModifiedNodes;
 

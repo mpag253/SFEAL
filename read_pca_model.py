@@ -60,6 +60,8 @@ print("\n\nN:", N)
 cov_data = np.matmul(zeroed_data.T, zeroed_data) / (N-1)
 print("\n\nData Covariance",  np.shape(cov_data),                  ":\n\n", cov_data)
 
+wrong_cov_data = np.matmul(raw_data.T, raw_data) / (N-1)
+print("\n\nWRONG Data Covariance",  np.shape(cov_data),                  ":\n\n", cov_data)
 
 if save_mean_and_cov:
     dumpfile1 = root+'output/latest_data_mean.npy'

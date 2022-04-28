@@ -1,0 +1,10 @@
+ set echo on;
+ fem def param;r;/hpc/mpag253/Torso/SFEAL/src/sfeal/useful_files/perl_com/3d_fitting;
+ fem def coor;r;/hpc/mpag253/Torso/SFEAL/src/sfeal/useful_files/perl_com/versions;
+ fem def base;r;/hpc/mpag253/Torso/SFEAL/src/sfeal/useful_files/perl_com/BiCubic_Surface_Unit;
+ fem def node;r;/hpc/mpag253/Torso/SFEAL/output/export_to_cm/pca_predict_H11303-EI_from_LRT_S_M68_N80_R-AGING025-EIsupine/fittedTorso;
+ fem def elem;r;/hpc/mpag253/Torso/SFEAL/src/sfeal/useful_files/perl_com/templateTorso;
+ fem export node;/hpc/mpag253/Torso/SFEAL/output/export_to_cm/pca_predict_H11303-EI_from_LRT_S_M68_N80_R-AGING025-EIsupine/fittedTorso as fittedTorso;
+ fem export elem;/hpc/mpag253/Torso/SFEAL/output/export_to_cm/pca_predict_H11303-EI_from_LRT_S_M68_N80_R-AGING025-EIsupine/fittedTorso as fittedTorso;
+ fem def node;w;/hpc/mpag253/Torso/SFEAL/output/export_to_cm/pca_predict_H11303-EI_from_LRT_S_M68_N80_R-AGING025-EIsupine/fittedTorso;
+ fem quit;
