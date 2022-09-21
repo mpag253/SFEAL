@@ -1,6 +1,6 @@
 import numpy as np
 from src.sfeal.morphic.mesher import Mesh, DepNode, StdNode, PCANode
-import src.ipnode2exnode
+#import src.ipnode2exnode
 import pickle
 
 class SSM(object):
@@ -61,9 +61,10 @@ class SSM(object):
         for i in range(len(self.mesh_names)):
             self.dataset.update({self.mesh_names[i]: i})
 
-        fname = 'mesh_id.pkl'
+        fname = 'temp/mesh_id.pkl'
         with open(fname, 'wb') as f:
-            print(pickle.dump(self.dataset, f))
+            #print(pickle.dump(self.dataset, f))
+            pickle.dump(self.dataset, f)
 
     def pca_train(self, pca_id, num_modes=2):
         from sklearn import decomposition
@@ -71,7 +72,7 @@ class SSM(object):
 
         self.X = np.array(self.X)
         #print("Shape 'self.X': ", np.shape(self.X))
-        dumpfile = open("latest_pca_data_array.pkl", "wb")
+        dumpfile = open("output/data/pca_data_array_"+pca_id+".pkl", "wb")
         pickle.dump(self.X, dumpfile)
         dumpfile.close()
         self.num_modes = num_modes
@@ -82,7 +83,7 @@ class SSM(object):
         self.variance = self.pca.explained_variance_
         self.generate_mesh()
 
-        joblib.dump(self.pca, 'output/pca_model_'+pca_id+'.sfeal')
+        joblib.dump(self.pca, 'output/models/pca_model_'+pca_id+'.sfeal')
         # joblib.dump(self.mesh, 'lung_pca.model')
         return self.mesh, self.X
 
@@ -176,7 +177,7 @@ class SSM(object):
             self.X = np.array(self.X)
         X = self.X.reshape((total_subjects, size * 12))
         
-        pca = joblib.load('output/pca_model_'+pca_id+'.sfeal')
+        pca = joblib.load('output/models/pca_model_'+pca_id+'.sfeal')
         pca_mean = pca.mean_
         pca_mean = pca_mean.reshape((1, size * 12))
         pca_components = pca.components_.T
@@ -1478,9 +1479,11 @@ class SSM_Mesh(object):
 
         perl_file = os.path.join(os.path.dirname(__file__), input_folder, 'perl_com', 'ip2py_%s.pl' % body)
         try:
-            _inp = file_path + '/' + body + '_fitted.ipnode'
+            #_inp = file_path + '/' + body + '_fitted.ipnode'
+            _inp = file_path + '/' + body + '_fitted_tf.ipnode'
         except IOError:
-            inp = file_path + '/fitted' + body + '.ipnode'
+            #inp = file_path + '/fitted' + body + '.ipnode'
+            inp = file_path + '/fitted' + body + '_tf.ipnode'
             
         #print("output path:\t", output_path)
         #print("file_path:  \t", file_path)

@@ -10,7 +10,7 @@ from src.sfeal import core as sf
 
 #from subjects import subjects as list_of_subjects
 
-from mlr_torso import EiMLR, EeMLR
+from mlr_model_torso import EiMLR, EeMLR
 
 # reload(sf)
 
@@ -24,23 +24,26 @@ config["fitted_lung_dir"] = "Lung/SurfaceFEMesh"
 config["fitted_torso_dir"] = "Torso"
 config["morphic original mesh path"] = "morphic_original"
 config["morphic aligned mesh path"] = "morphic_aligned"
-config["subjects for pca"] = []
 
-#config["bodies"] = "LR"  # can be L or R (left or right lung only) or LR (both lungs) or LRT (both lungs + torso)
-#config["morphic mesh name"] = "Lung_fitted.mesh"
 config["bodies"] = "LRT"  # can be L or R (left or right lung only) or LR (both lungs) or LRT (both lungs + torso)
 config["morphic mesh name"] = "TorsoLung_fitted.mesh"
-
-config["reference lung dir"] = os.path.join("Human_Aging","AGING025","EIsupine")
-
-config["number of modes"] = 68 #"full"  # 68       # "full" needs work for meshes that don't exist ---
-
+config["reference lung dir"] = os.path.join("Human_Aging","AGING001","EIsupine")
 config["scale"] = True  # whether lung size is normalised
 
-""" Read inputs from checklist """
-input_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", skiprows=0, usecols=range(5), engine='openpyxl'))
-input_list = input_list[input_list[:, 0] == 1]
+config["number of modes"] = "full"  # "full" needs work for meshes that don't exist ---
+config["leave one out"] = "E" #None  # 'None' or a string ID for the leave one out (e.g. 'A')
+
+# Read inputs from checklist
+torso_list = np.array(pd.read_excel("/hpc/mpag253/Torso/torso_checklist.xlsx", usecols=range(13), engine='openpyxl'))
+if config["leave one out"] is not None:
+    loo_subject_index = torso_list[:, 12]==config["leave one out"]
+    torso_list[loo_subject_index, 0] = 0
+    config["loo subject"] = torso_list[loo_subject_index, 2][0]  # leave out out subject
+    config["loo subject short"] = config["loo subject"].split('-')[-1]
+    print('\nLEAVE ONE OUT:', config["leave one out"], '=', config["loo subject short"], '\n')
+input_list = torso_list[torso_list[:, 0] == 1]
 config["study"], config["subjects"], config["volume"] = input_list[:, 1:4].T
+config["subjects for pca"] = []
 
 
 def _get_mesh():
@@ -65,7 +68,7 @@ def _get_mesh():
         study = config["study"][i]
         volume = config["volume"][i]
         
-        full_path = os.path.join(config["root dir"], study, sub, volume, fitted_lung_dir)
+        full_path = os.path.join(config["root dir"], 'output', sub, volume, fitted_lung_dir)
         #/hpc/mpag253/Torso/surface_fitting/output/AGING001/EISupine/Torso/
         torso_path = os.path.join(config["root dir"], 'output', sub, volume, config["fitted_torso_dir"])
         output_path = sfmesh.convert_cm_mesh(full_path, torso_path, config["bodies"])   ##########
@@ -127,7 +130,7 @@ def _prepare_sfeal():
         study = config["study"][i]
         volume = config["volume"][i]
         
-        full_path = os.path.join(config["root dir"], study, sub, volume, fitted_lung_dir, config["morphic aligned mesh path"])
+        full_path = os.path.join(config["root dir"], 'output', sub, volume, fitted_lung_dir, config["morphic aligned mesh path"])
         
         if not os.path.exists(full_path):
             print('morphic_aligned directory does not exist for subject {}. Skipping...'.format(sub))
@@ -165,28 +168,38 @@ def _get_score(sfeal_model, mesh, aligned_mesh_names, pca_id):
         for j in range(sf.num_modes):
             score_array[i][j+1] = score['MODE {:>3d} SCORE'.format(j+1)]
 
-    np.savetxt('output/pca_scores_'+pca_id+'.csv', score_array.astype(np.str_), delimiter=',', fmt='%s')
+    np.savetxt('output/scores/pca_scores_'+pca_id+'.csv', score_array.astype(np.str_), delimiter=',', fmt='%s')
     return m_distance
 
 
-def _read_file():
-    import pandas as pd
-    f = '/hpc/mpag253/Torso/SFEAL/input/temp_test_predict_subjects.csv'
-    df = pd.read_csv(f, header=0, delimiter=',')
-    return df
+#def _read_file():
+#    import pandas as pd
+#    f = '/hpc/mpag253/Torso/SFEAL/input/temp_test_predict_subjects.csv'
+#    df = pd.read_csv(f, header=0, delimiter=',')
+#    return df
     
     
 def generate_id():
+
     if config["scale"]:
         filename_scale_id = "S"
     else:
         filename_scale_id = "U"
+        
+    if config["leave one out"] is None:
+        filename_LOO = ""
+    else:
+        filename_LOO = "_LOO-"+config["leave one out"]
+        
     filename_ref_id = '-'.join(config["reference lung dir"].split('/')[1:3])
+    
     pca_id = config["bodies"] + \
-                           '_' + filename_scale_id + \
-                          '_M' + str(config["number of modes"]) + \
-                          '_N' + str(len(config["subjects for pca"])) + \
-                         '_R-' + filename_ref_id
+             '_' + filename_scale_id + \
+             '_M' + str(config["number of modes"]) + \
+             '_N' + str(len(config["subjects for pca"])) + \
+             '_R-' + filename_ref_id + \
+             filename_LOO
+                         
     return pca_id
 
 
@@ -203,31 +216,56 @@ def main():
     pca_id = generate_id()
     pmesh, _ = sf.pca_train(pca_id, num_modes=number_of_modes)
     sf.save_mesh_id()
-
-    # Saving the scores for the training samples: 
-    _get_score(sf, pmesh, aligned_mesh_names, pca_id)
-    
+       
     # Explained variance/variance ratios 
     #print("Explained variance:\n", sf.variance)
     #print("Explained variance ratio:")
     #[print(key,':',value) for key, value in sf.ratio.items()]
-    #print("\n")
+    #print("\n") 
+    
+    ################################################################################
+    # OPTIONAL OUTPUTS
+    ################################################################################
+    
+    
+    # Saving the scores for the training samples: 
+    export_scores = False
+    if export_scores:
+        _get_score(sf, pmesh, aligned_mesh_names, pca_id)
+        
+    
+    # Export mode shapes 
+    export_mode_shapes = False
+    if export_mode_shapes:  
+        mean_shape = sf.get_sampled_nodes(pmesh, np.zeros([5])).flatten()
+        n_dof = len(mean_shape)
+        weights = np.eye(number_of_modes)
+        modeshapes = np.empty([n_dof, number_of_modes])
+        for i in range(number_of_modes):
+            modeshape = sf.get_sampled_nodes(pmesh, weights[i]).flatten()
+            modeshapes[:, i] = modeshape - mean_shape
+        np.save('output/mode_shapes/pca_modeshapes_'+pca_id+'.npy', modeshapes)
+        #with np.printoptions(precision=3, suppress=True):
+        #    print("\n\tMean:\n", mean_shape)
+        #with np.printoptions(precision=3, suppress=True):
+        #    print("\n\tmodeshapes:\n", modeshapes)   
+        
     
     # Saving the mean shape to cmiss files (i.e. ipnode)
-    export_mean_shape = False
+    export_mean_shape = True
     if export_mean_shape:
         weights = np.zeros(number_of_modes)
         if config["bodies"] == "LRT":
-            sf.export_to_cm(pmesh, weights, name='pca_mean_'+pca_id, body='T', show_mesh=False)
-            sf.export_to_cm(pmesh, weights, name='pca_mean_'+pca_id, body='L', show_mesh=False)
-            sf.export_to_cm(pmesh, weights, name='pca_mean_'+pca_id, body='R', show_mesh=False)
+            sf.export_to_cm(pmesh, weights, name='pca_'+pca_id+'/sample_mean', body='T', show_mesh=False)
+            sf.export_to_cm(pmesh, weights, name='pca_'+pca_id+'/sample_mean', body='L', show_mesh=False)
+            sf.export_to_cm(pmesh, weights, name='pca_'+pca_id+'/sample_mean', body='R', show_mesh=False)
         elif config["bodies"] == "LR":
-            sf.export_to_cm(pmesh, weights, name='pca_mean_'+pca_id, body='L', show_mesh=False)
-            sf.export_to_cm(pmesh, weights, name='pca_mean_'+pca_id, body='R', show_mesh=False)
+            sf.export_to_cm(pmesh, weights, name='pca_'+pca_id+'/sample_mean', body='L', show_mesh=False)
+            sf.export_to_cm(pmesh, weights, name='pca_'+pca_id+'/sample_mean', body='R', show_mesh=False)
 
 
     # For projecting non-training samples onto the trained PCA:
-    # not updated ???
+    # not updated by MP ???
     generate_sample_projections = False
     if generate_sample_projections:
         pr_path = "/hpc/mpag253/Torso/surface_fitting/Human_Aging"
@@ -255,126 +293,63 @@ def main():
     # For exporting +/-2.5 standard deviation mode weights as shapes:
     export_mode_shapes = False
     if export_mode_shapes:
-        modes = np.arange(number_of_modes) + 1
+        #modes = np.arange(number_of_modes) + 1
+        modes = np.arange(10) + 1
         weights = np.zeros(number_of_modes)
-    
         for m in modes:
             for w in np.linspace(-2.5, 2.5, 2):
-                
                 weights[m-1] = w
                 print(weights)
-    
                 if w == -2.5:
-                    config["export_name"] = 'pca_mode{}n25_'.format(m) + pca_id
+                    config["export_name"] = 'pca_'+pca_id + '/mode{:02d}_neg2p5'.format(m)
                 else:
-                    config["export_name"] = 'pca_mode{}p25_'.format(m) + pca_id
-    
+                    config["export_name"] = 'pca_'+pca_id + '/mode{:02d}_pos2p5'.format(m)
                 sf.export_to_cm(pmesh, weights, name=config["export_name"], body='L', show_mesh=False)
                 sf.export_to_cm(pmesh, weights, name=config["export_name"], body='R', show_mesh=False)
                 sf.export_to_cm(pmesh, weights, name=config["export_name"], body='T', show_mesh=False)
-    
                 weights = np.zeros(number_of_modes)
 
-
-    # For shape predictions from MLR
-    generate_mlr_predictions = True
-    if generate_mlr_predictions:
+ 
+    # For LEAVE-ONE-OUT MLR shape predictions
+    generate_loo_prediction = True
+    if generate_loo_prediction and (config["leave one out"] is not None):
         print("\n\t"+"="*41+"\n\n\tGENERATING MLR PREDICTIONS...")
-        pft_df = _read_file()
-        pfts = dict()
         
-        for subject, row in pft_df.iterrows():
-            pfts['subject'] = row['subject']
-            pfts['age'] = row['age']
-            pfts['sex'] = row['sex']
-            pfts['height'] = row['height']
-            pfts['weight'] = row['weight']
-            pfts['bmi'] = row['bmi']
-            pfts['fvc'] = row['fvc']
-            pfts['fev1'] = row['fev1']
-            pfts['fev1fvc'] = row['fev1fvc']
-            pfts['frc'] = row['frc']
-            pfts['tlc'] = row['tlc']
-            pfts['vc'] = row['vc']
-            pfts['rv'] = row['rv']
-            pfts['fef'] = row['fef']
-            pfts['pefr'] = row['pefr']
-            pfts['rvtlc'] = row['rvtlc']
-            pfts['dlco'] = row['dlco']
-          
-            # EI
-            ei = EiMLR(pfts['age'], pfts['sex'], pfts['height'], pfts['weight'], pfts['bmi'], pfts['fvc'], pfts['fev1'], pfts['fev1fvc'], pfts['frc'], pfts['tlc'], pfts['rv'], pfts['fef'], pfts['pefr'], pfts['rvtlc'], pfts['dlco'])
-            eim1 = ei.predict_m1()
-            eim2 = ei.predict_m2()
-            eim3 = ei.predict_m3()
-            eim4 = ei.predict_m4()
-            eim5 = ei.predict_m5()
-            weights_ei = [eim1, eim2, eim3, eim4, eim5]  # weights_ei = np.zeros(5)
-            export_name = 'pca_predict_'+pfts['subject']+'-EI_from_'+pca_id
-            sf.export_to_cm(pmesh, weights_ei, name=export_name, body='L', show_mesh=False)
-            sf.export_to_cm(pmesh, weights_ei, name=export_name, body='R', show_mesh=False)
-            sf.export_to_cm(pmesh, weights_ei, name=export_name, body='T', show_mesh=False)
-            node_true_mean = sf.get_sampled_nodes(pmesh, weights_ei).flatten()
-            with np.printoptions(precision=2, suppress=True):
-                print("\n\tPredicted mean nodes:\n\t", node_true_mean)
-            
-            ## EE
-            #ee = EeMLR(pfts['age'], pfts['frc'], pfts['rv'], pfts['rvtlc'], pfts['dlco'], pfts['fev1'], pfts['pefr'], pfts['vc'])
-            #eem1 = ee.predict_m1()
-            #eem2 = ee.predict_m2()
-            #eem3 = ee.predict_m3()
-            #weights_ee = [eem1, eem2, eem3]
-            #export_name = 'pca_predict_'+pfts['subject']+'-EE_from_'+pca_id
-            #sf.export_to_cm(pmesh, weights_ee, name=export_name, body='L', show_mesh=False)
-            #sf.export_to_cm(pmesh, weights_ee, name=export_name, body='R', show_mesh=False)
-            #sf.export_to_cm(pmesh, weights_ee, name=export_name, body='T', show_mesh=False)
-            
-            print("\n\tSAVED PREDICTED MEAN MEASH TO:\n\t"+export_name+"\n\n\t"+"="*41+"\n")
-            
-          
-    # ESTIMATE COVARIANCE MATRIX
-    # --- INDEPENDENT OF WEIGHTS !!!
-    # --- CAN BE UPDATED TO ANALYSTICAL (NOT SAMPLED) FOR SPEED
-    generate_conditional_covariance = True
-    if generate_conditional_covariance:
-        print("\n\t"+"="*41+"\n\n\tCALCULATING CONDITIONAL COVARIANCE MATRIX FOR PCA MODEL...")
-        print("\n\t---- WARNING: ensure no truncation of variances !!!")
-        # import covariance of weights (generated from EIT Project/SSM/torso_pca_mlr.py)
-        cov_m = np.loadtxt("input/conditional_covariance/condcov_LRT_S_M5_N76_R-AGING025-EIsupine.csv", delimiter=",")
-        # setup sampling
-        n_samples = 10
-        from src.sfeal.useful_files import nodes
-        node_list = nodes.Nodes().set_nodes(bodies='lrt')
-        node_data = np.empty([n_samples,len(node_list)*12])
-        L_m = sla.cholesky(cov_m, lower=True)
-        m_samples = np.matmul(L_m, np.random.normal(size=[5, n_samples]))  # n_mlr_modes        
-        # samples
-        for i in range(n_samples):
-            print(("\t---- Sample {:0"+str(len(str(n_samples)))+"d} of ").format(i+1) + str(n_samples))
-            weights_samp = np.random.normal(size=number_of_modes)  # needs to be hard coded as full pca size to prevent any truncation
-            weights_samp[:5] = m_samples[:, i]
-            #
-            #export_name = 'pca_sample_'+pfts['subject']+'-EI_from_'+pca_id
-            #sf.export_to_cm(pmesh, weights_samp, name=export_name, body='L', show_mesh=False)
-            #sf.export_to_cm(pmesh, weights_samp, name=export_name, body='R', show_mesh=False)
-            #sf.export_to_cm(pmesh, weights_samp, name=export_name, body='T', show_mesh=False)
-            node_data[i] = sf.get_sampled_nodes(pmesh, weights_samp).flatten()
-        # calculate
-        node_samp_mean = np.mean(node_data, axis=0)
-        node_samp_cov = np.cov(node_data.T)
-        # print out
-        with np.printoptions(precision=2, suppress=True):
-            print("\n\tSample mean weights:\n\t", np.mean(m_samples, axis=1))
-            print("\n\tSample mean nodes:\n\t", str(node_samp_mean).replace('\n', '\n\t'))
-            print("\n\tSample covariance:\n\t", str(node_samp_cov).replace('\n', '\n\t'), "\n\t", np.shape(node_samp_cov))
-        # export to file
-        export_name = 'output/covariance/TEST_pca_condcov_'+pca_id
-        spm = sparse.csr_matrix(node_samp_cov)
-        sparse.save_npz(export_name+'.npz', spm)
-        print("\n\tSAVED COVARIANCE MATRIX TO:\n\t"+export_name+"\n\n\t"+"="*41+"\n")
+        # Retrieve the LOO subject data
+        f = '/hpc/mpag253/Torso/SFEAL/input/pca_subject_data.csv'
+        pca_subject_data = pd.read_csv(f, skiprows=0, header=1, delimiter=',')
+        loo_subject_data = pca_subject_data[pca_subject_data['Subject'] == config["loo subject short"]]
 
-
-
+        # Retrieve the MLR model for the LOO subject
+        import pickle
+        with open('output/mlr_models/pca_mlr_model_'+pca_id+'.pkl', 'rb') as f:
+            mlr_model = pickle.load(f)
+        
+        # EI
+        ei = EiMLR(mlr_model, loo_subject_data) 
+        ei_weights = ei.predict_modes()
+        export_name = 'pca_'+pca_id+'/predict_'+config["loo subject short"]
+        sf.export_to_cm(pmesh, ei_weights, name=export_name, body='L', show_mesh=False)
+        sf.export_to_cm(pmesh, ei_weights, name=export_name, body='R', show_mesh=False)
+        sf.export_to_cm(pmesh, ei_weights, name=export_name, body='T', show_mesh=False)
+        #ei_mean = sf.get_sampled_nodes(pmesh, ei_weights).flatten()
+        #with np.printoptions(precision=2, suppress=True):
+        #    print("\n\tPredicted mean nodes:\n\t", ei_mean)
+        
+        ## EE
+        #ee = EeMLR(pfts['age'], pfts['frc'], pfts['rv'], pfts['rvtlc'], pfts['dlco'], pfts['fev1'], pfts['pefr'], pfts['vc'])
+        #eem1 = ee.predict_m1()
+        #eem2 = ee.predict_m2()
+        #eem3 = ee.predict_m3()
+        #weights_ee = [eem1, eem2, eem3]
+        #export_name = 'pca_predict_'+pfts['subject']+'-EE_from_'+pca_id
+        #sf.export_to_cm(pmesh, weights_ee, name=export_name, body='L', show_mesh=False)
+        #sf.export_to_cm(pmesh, weights_ee, name=export_name, body='R', show_mesh=False)
+        #sf.export_to_cm(pmesh, weights_ee, name=export_name, body='T', show_mesh=False)
+        
+        print("\n\tSAVED PREDICTED MEAN MESH TO:\n\t"+export_name+"\n\n\t"+"="*41+"\n")
+            
+            
     # scores, mahalanobis_distance = _get_score(sf, aligned_mesh_names)
 
     return sf, pmesh

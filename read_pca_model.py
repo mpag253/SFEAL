@@ -3,20 +3,21 @@ import numpy as np
 from scipy import sparse
 import pickle
 
+
+
 root = '/hpc/mpag253/Torso/SFEAL/'
 
-#pca_id = 'LR_U_M5_N83_R-AGING025-EIsupine'
-#pca_id = 'LR_U_Mfull_N83_R-AGING025-EIsupine'
-#pca_id = 'LR_S_M5_N83_R-AGING025-EIsupine'
-#pca_id = 'LRT_U_M5_N76_R-AGING025-EIsupine'
-pca_id = 'LRT_S_M5_N76_R-AGING025-EIsupine'
-#pca_id = 'LRT_S_M68_N76_R-AGING025-EIsupine'
+# ID for specific PCA to read
+pca_id = 'LRT_S_Mfull_N81_R-AGING001-EIsupine'
 
+save_explained_variance = True
 save_covariance = False
 save_mean_and_cov = True
 
+
+
 # Load PCA
-pca = joblib.load('output/pca_model_'+pca_id+'.sfeal')
+pca = joblib.load('output/models/pca_model_'+pca_id+'.sfeal')
 
 # PCA object:
 # https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
@@ -32,9 +33,13 @@ print("\n\nPCA Singular Values ",          np.shape(pca.singular_values_),      
 print("\n\nPCA Mean ",                     np.shape(pca.mean_),                     ":\n\n", pca.mean_)
 print("\n\nPCA Noise Variance:", pca.noise_variance_)
 
+if save_explained_variance:
+    array = np.vstack((range(1,len(cumvar)+1), pca.explained_variance_ratio_, cumvar)).T
+    fname = root+'output/data/pca_explained_variance_'+pca_id+'.csv'
+    np.savetxt(fname, array, fmt='%.5f', delimiter=",", header=',exp_var,cum_var')
+
 pca_cov = pca.get_covariance()
 print("\n\nPCA Covariance ",               np.shape(pca_cov),                       ":\n\n", pca_cov)
-
 if save_covariance:
     spm = sparse.csr_matrix(pca_cov)
     sparse.save_npz(root+'output/covariance/pca_cov_'+pca_id+'.npz', spm)
@@ -61,11 +66,11 @@ cov_data = np.matmul(zeroed_data.T, zeroed_data) / (N-1)
 print("\n\nData Covariance",  np.shape(cov_data),                  ":\n\n", cov_data)
 
 wrong_cov_data = np.matmul(raw_data.T, raw_data) / (N-1)
-print("\n\nWRONG Data Covariance",  np.shape(cov_data),                  ":\n\n", cov_data)
+print("\n\n(ALT) Data Covariance",  np.shape(cov_data),                  ":\n\n", cov_data)
 
 if save_mean_and_cov:
-    dumpfile1 = root+'output/latest_data_mean.npy'
-    dumpfile2 = root+'output/latest_data_cov.npz'
+    dumpfile1 = root+'output/data/pca_data_mean_'+pca_id+'.npy'
+    dumpfile2 = root+'output/data/pca_data_cov_'+pca_id+'.npz'
     #np.save(dumpfile1, mean_data)
     np.save(dumpfile1, pca.mean_)
     spm = sparse.csr_matrix(cov_data)
