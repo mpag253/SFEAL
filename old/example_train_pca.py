@@ -1,40 +1,25 @@
 import os
 import numpy as np
 
-from sfeal import core as sf
+from src.sfeal import core as sf
 
 from subjects import subjects as list_of_subjects
 
-from mlr import EiMLR, EeMLR
+# from mlr import EiMLR, EeMLR
 
 # reload(sf)
 
-sfmesh = sf.MESH()
+sfmesh = sf.SSM_Mesh()
 sfmodel = sf.SSM()
 
 """ Some configurations. Modify as required. """
 config = dict()
-# config["root dir"] = "/hpc/mosa004/Lung/Data"  # specify where the root directory for lung meshes are
-# config["study"] = "Human_IPF"  # specify the study
-# config["path"] = os.path.join(config["root dir"], config["study"])
-# config["volume"] = "TLC"  # specify the imaged volume
-# config["scale"] = True  # whether lung size is normalised
-# config["fitted_mesh_dir"] = "Lung/SurfaceFEMesh/KatherineMesh"
-# # config["subjects"] = list_of_subjects  # subjects going into the PCA
-# config["subjects"] = os.listdir(config["path"])  # subjects going into the PCA
-# config["lung"] = "LR"  # can be L or R (left or right lung only) or LR (both lungs)
-# config["morphic original mesh path"] = "morphic_original"
-# config["morphic aligned mesh path"] = "morphic_aligned"
-# config["morphic mesh name"] = "Lung_fitted.mesh"
-# # config["reference lung"] = "IPF613"
-# config["subjects for pca"] = []
-# config["number of modes"] = 5
-config["root dir"] = "/hpc/mosa004/SFEAL/data"  # specify where the root directory for lung meshes are
-config["study"] = "HLA_HA"  # specify the study
+config["root dir"] = "/hpc/mpag253/Torso/surface_fitting"  # specify where the root directory for lung meshes are
+config["study"] = "Human_Aging"  # specify the study
 config["path"] = os.path.join(config["root dir"], config["study"])
-config["volume"] = "Insp"  # specify the imaged volume
+config["volume"] = "EIsupine"  # specify the imaged volume
 config["scale"] = True  # whether lung size is normalised
-config["fitted_mesh_dir"] = "original/cmiss"
+config["fitted_mesh_dir"] = "Lung/SurfaceFEMesh"
 config["subjects"] = list_of_subjects  # subjects going into the PCA
 # config["subjects"] = os.listdir(config["path"])  # subjects going into the PCA
 config["lung"] = "LR"  # can be L or R (left or right lung only) or LR (both lungs)
@@ -81,7 +66,7 @@ def _get_mesh():
                 #     reference_mesh = '/hpc/mosa004/SFEAL/data/HLA_HA/AGING025/Insp/original/cmiss/morphic_original/Lung_fitted.mesh'
                 meshes.append(os.path.join(output_path, mesh_file))
 
-    reference_mesh = '/hpc/mosa004/SFEAL/data/HLA_HA/AGING025/Insp/original/cmiss/morphic_original/Lung_fitted.mesh'
+    reference_mesh = '/hpc/mpag253/Torso/surface_fitting/Human_Aging/AGING025/EIsupine/Lung/SurfaceFEMesh/morphic_original/Lung_fitted.mesh' #######################################################
 
     return meshes, reference_mesh
 
@@ -101,7 +86,7 @@ def _align(m, r, scaling=False):
     aligned_mesh_objects = []
 
     for mesh in meshes:
-        d, Z, tform, m = sfmesh.align_mesh(reference_mesh, mesh, scaling=scaling, reflection='best')
+        d, Z, tform, m, _ = sfmesh.align_mesh(reference_mesh, mesh, scaling=scaling, reflection='best')
         aligned_mesh_objects.append(m)
 
     return aligned_mesh_objects
@@ -155,7 +140,7 @@ def _get_score(sfeal_model, mesh, aligned_mesh_names):
         for j in range(sf.num_modes):
             score_array[i][j+1] = score['MODE   '+str(j+1)+' SCORE']
 
-    np.savetxt('aging_scores.csv', score_array, delimiter=',', fmt='%s')
+    np.savetxt('subject_scores.csv', score_array, delimiter=',', fmt='%s')
     return m_distance
 
 
@@ -177,29 +162,34 @@ def main():
     pmesh, _ = sf.pca_train(num_modes=number_of_modes)
     sf.save_mesh_id()
 
-    pr_path = "/hpc/mosa004/Lung/Data/Human_IPF"
-    pr_path_1 = "/TLC/Lung/SurfaceFEMesh/KatherineMesh/morphic_aligned/Lung_fitted.mesh"
+    # Saving the scores for the training samples: 
+    _get_score(sf, pmesh, aligned_mesh_names)
 
-    projected_weights = dict()
-    for project_subject in os.listdir(pr_path):
-        pr_sub_path = pr_path + "/" + project_subject + pr_path_1
-        if os.path.exists(pr_sub_path):
-            print("Subject = {}".format(project_subject))
-            w, r = sf.project_new_mesh(pr_sub_path)
-            projected_weights[project_subject] = w
+    # # For projecting non-training samples onto the trained PCA:
+    #
+    # pr_path = "/hpc/mpag253/Torso/surface_fitting/Human_Aging"
+    # pr_path_1 = "/EIsupine/Lung/SurfaceFEMesh/morphic_aligned/Lung_fitted.mesh"
+    #
+    # projected_weights = dict()
+    # for project_subject in os.listdir(pr_path):
+    #    pr_sub_path = pr_path + "/" + project_subject + pr_path_1
+    #    if os.path.exists(pr_sub_path):
+    #        print("Subject = {}".format(project_subject))
+    #        w, r = sf.project_new_mesh(pr_sub_path)
+    #        projected_weights[project_subject] = w
+    #
+    # weight_list = list()
+    # for subjects in projected_weights.keys():
+    #    weight_list.append(subjects)
+    #    for modes in sorted(projected_weights[subjects]):
+    #        weight_list.append(projected_weights[subjects][modes])
+    #
+    # a = np.asarray(weight_list, dtype=object)
+    # b = a.reshape(number_of_subjects_in_pca, number_of_modes+1)
+    # np.savetxt('/people/mpag253/Desktop/subject_weights.txt', b, fmt='%s')
 
-    weight_list = list()
-    for subjects in projected_weights.keys():
-        weight_list.append(subjects)
-        for modes in sorted(projected_weights[subjects]):
-            weight_list.append(projected_weights[subjects][modes])
-
-    a = np.asarray(weight_list, dtype=object)
-    b = a.reshape(30, 6)
-    np.savetxt('/people/mosa004/Desktop/ipf_weights.txt', b, fmt='%s')
-
-    # _get_score(sf, pmesh, aligned_mesh_names)
-
+    # # For ...
+    #
     # modes = [1, 2, 3, 4]
     # weights = [0, 0, 0, 0]
     #
@@ -229,6 +219,7 @@ def main():
     # config["export_name"] = 'mode_1_N25_no_scale'
     # sf.export_to_cm(pmesh, weights, name=config["export_name"], lung='L', show_mesh=False)
 
+    # # For (multiple linear regression) ...
     #
     # pft_df = _read_file()
     # pfts = dict()

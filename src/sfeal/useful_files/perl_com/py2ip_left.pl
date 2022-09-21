@@ -102,7 +102,7 @@ while ($line) {
             
         } else {
             
-            @arr = split(/\s+/, $line);
+            @arr = split(/ /, $line);
             $node = $arr[0];
             #~ print "$node \n";
             $nv = 0;
@@ -180,7 +180,7 @@ while ($line) {
             
         } else {
             
-            @arr = split(/\s+/, $line);
+            @arr = split(/ /, $line);
             $node = $arr[0];
             #~ print "$node \n";
             $nv = 0;
@@ -263,7 +263,7 @@ while ($line) {
             
         } else {
             
-            @arr = split(/\s+/, $line);
+            @arr = split(/ /, $line);
             $node = $arr[0];
             #~ print "$node \n";
             $nv = 0;
@@ -287,8 +287,9 @@ close IPNODE;
 open IPNODE, ">$ofile" or die "\033[31mError: Can't open $ofile\033[0m ";
 
 print IPNODE " CMISS Version 1.21 ipnode File Version 2\n";
-print IPNODE " Heading: Right_pca_reconstructed\n\n";
-printf IPNODE " The number of nodes is [  50]:   50 \n\n";
+#print IPNODE " Heading: Left_pca_reconstructed\n\n";
+print IPNODE " Heading: fittedLeft\n\n";
+printf IPNODE " The number of nodes is [  35]:   35 \n\n";
 print IPNODE " Number of coordinates [ 3]:  3\n";
 print IPNODE " Do you want prompting for different versions of nj=1 [N]? Y\n";
 print IPNODE " Do you want prompting for different versions of nj=2 [N]? Y\n";
@@ -304,39 +305,39 @@ print IPNODE " The number of derivatives for coordinate 3 is [0]: 3 \n";
 
 my (@versions,@Nodes,@base);
 
-@Nodes = (1..50);
+@Nodes = (51..54,56..59,61..63,65..68,70..74,76..78,80..81,83..84,86..88,90..92,94,96);
 
-for my $i (19,21..22,25,27..28,41..43,45..47){
+for my $i (66,68,72,74,77,83,87,88,91..92){
     $versions[$i] = 0;
 }
 
 # Nodes with 1 version
-for my $i (1..18,20,23..24,26,29..40,44,48..50){
+for my $i (51..54,56..59,61..63,65,67,70..71,73,76,78,80..81,84,86,90,94,96){
     $versions[$i] = 1;
 }
 
 #Nodes with 2 versions
-for my $i (1..18,20,23..24,26,29..40,44,48..50){
+for my $i (51..54,56..59,61..63,65,67,70..71,73,76,78,80..81,84,86,90,94,96){
     $versions[$i] = 2;
 }
 
 # Nodes with 3 versions
-for my $i (1,3,7,9,14,20,26,29,31,33,35,38,48,50){
+for my $i (51..52,56..57,61,67,73,78,84,80,94,96){
 	$versions[$i] = 3;
 }
 
 # Nodes with 4 versions
-for my $i (1,7,9,20,26,29,33,35,48,50){
+for my $i (51,56,57,67,73,80,94,96){
 	$versions[$i] = 4 
 }
 
 # Nodes with 5 versions
-for my $i (1,7,20,26,29,31,33,38,48,50){
+for my $i (51,52,56,61,67,73,78,80,84,94,96){
 	$versions[$i] = 5; 
 }
 
 # Nodes with 6 versions
-for my $i (31,38){
+for my $i (52,61,78,84){
 	$versions[$i] = 6; 
 }
 
@@ -356,7 +357,7 @@ sub PrintModifiedNodes {
                 print IPNODE " The Xj($j) coordinate is [ 0.00000E+00]:   $xyz[$i][$j]\n"; 
                 print IPNODE " The derivative wrt direction 1 is [ 0.00000E+00]: $deriv[$i][$nv][$j][0]\n";
                 print IPNODE " The derivative wrt direction 2 is [ 0.00000E+00]: $deriv[$i][$nv][$j][1]\n";
-                print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00]: $deriv[$i][$nv][$j][2]\n";
+                print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00]: 0.0\n";
             } 
         }else{
             for my $j (1..3){
@@ -366,7 +367,7 @@ sub PrintModifiedNodes {
                     print IPNODE " The Xj($j) coordinate is [ 0.00000E+00]:   $xyz[$i][$j]\n"; 
                     print IPNODE " The derivative wrt direction 1 is [ 0.00000E+00]: $deriv[$i][$nv][$j][0]\n";
                     print IPNODE " The derivative wrt direction 2 is [ 0.00000E+00]: $deriv[$i][$nv][$j][1]\n";
-                    print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00]: $deriv[$i][$nv][$j][2]\n";
+                    print IPNODE " The derivative wrt directions 1 & 2 is [ 0.00000E+00]: 0.0\n";
                 } 
             } 
         }    

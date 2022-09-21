@@ -1,12 +1,13 @@
 #!/usr/bin/perl
 
 use strict;
+use warnings;
 
 my $nfile = $ARGV[0];
 my $ofile = $ARGV[1];
 
-
-open IPNODE, "<$nfile" or die "\033[31mError: Can't open $nfile\033[0m ";
+#----------------------------------------------------------------------------
+ open IPNODE, "<$nfile" or die "\033[31mError: Can't open $nfile\033[0m ";
 my ($node, $i, @xyz, $nv, @deriv);
 
 my $line = <IPNODE>;
@@ -29,35 +30,30 @@ close IPNODE;
 
 
 my (@versions,@Nodes,@base);
-@Nodes = (1..50);
+@Nodes = (51..54,56..59,61..63,65..68,70..74,76..78,80..81,83..84,86..88,90..92,94,96);
 
 # Nodes with 1 version
-for my $i (1..50){
+for my $i (51..54,56..59,61..63,65..68,70..74,76..78,80..81,83..84,86..88,90..92,94,96){
     $versions[$i] = 1;
 }
 
 #Nodes with 2 versions
-for my $i (2,4..6,8,10..13,15..18,23..24,30,32,34,36..37,39..40,44,49){
+for my $i (53..54,58..59,62..63,65,70,71,76,81,86,90){
     $versions[$i] = 2;
 }
 
-# Nodes with 3 versions
-for my $i (3,14){
-	$versions[$i] = 3;
-}
-
 # Nodes with 4 versions
-for my $i (9,35){
+for my $i (57){
 	$versions[$i] = 4 
 }
 
 # Nodes with 5 versions
-for my $i (1,7,20,26,29,33,48,50){
+for my $i (51,56,67,73,80,94,96){
 	$versions[$i] = 5; 
 }
 
 # Nodes with 6 versions
-for my $i (31,38){
+for my $i (52,61,78,84){
 	$versions[$i] = 6; 
 }
 

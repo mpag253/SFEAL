@@ -1,0 +1,10 @@
+ gfx read node '/hpc/jjoh182/PythonProjectMaster/mahyar-sfeal/src/output/export_to_cm/default/Insp/fittedRight';
+ gfx read elem '/hpc/jjoh182/PythonProjectMaster/mahyar-sfeal/src/output/export_to_cm/default/Insp/fittedRight';
+ gfx cre egroup fissure;
+ gfx mod egroup fissure add 51..62;
+ gfx mod g_e 'Right' general clear circle_discretization 6 default_coordinate coordinates; element_discretization '12*12*12' native_discretization none;
+ gfx mod g_e 'Right' lines coordinate coordinates select_on material green selected_material default_selected;
+ gfx mod g_e fissure general clear circle_discretization 6 default_coordinate coordinates; element_discretization '12*12*12' native_discretization none;
+ gfx mod g_e fissure surfaces material tissue;
+ gfx edit scene;
+ gfx cre win;

@@ -5,7 +5,6 @@ use strict;
 my $nfile = $ARGV[0];
 my $ofile = $ARGV[1];
 
-
 open IPNODE, "<$nfile" or die "\033[31mError: Can't open $nfile\033[0m ";
 my ($node, $i, @xyz, $nv, @deriv);
 
@@ -26,7 +25,6 @@ while ($line) {
     $line = <IPNODE>;
 }
 close IPNODE;
-
 
 my (@versions,@Nodes,@base);
 @Nodes = (1..50);
@@ -78,7 +76,5 @@ sub PrintModifiedNodes {
         }
     }
 }
-
-
 my $arraysize = @Nodes;
 #print "Total Nodes = $arraysize \n";
